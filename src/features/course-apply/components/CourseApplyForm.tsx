@@ -130,10 +130,7 @@ export default function CourseApplyForm() {
   }
 
   const handlePrev = () => {
-    if (currentStep > 1) {
-      saveFormState(methods.getValues(), maxReachedStep) // 뒤로 가기 전 현재 값 저장
-      goToStep((currentStep - 1) as StepValue)
-    }
+    if (currentStep > 1) goToStep((currentStep - 1) as StepValue)
   }
 
   const handleSubmit = async () => {
