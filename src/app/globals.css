@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-geist);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, sans-serif;
+  color: #111827;
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900
+           placeholder:text-gray-400
+           focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100
+           disabled:bg-gray-100 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-2.5
+           text-sm font-semibold text-white
+           hover:bg-blue-700 active:bg-blue-800
+           focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 px-6 py-2.5
+           text-sm font-semibold text-gray-700
+           hover:bg-gray-50 active:bg-gray-100
+           focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-1
+           transition-colors;
+  }
+
+  .card {
+    @apply w-full rounded-2xl bg-white shadow-sm border border-gray-100 px-6 py-8;
+  }
 }
