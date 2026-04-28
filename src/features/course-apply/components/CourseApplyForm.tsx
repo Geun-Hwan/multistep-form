@@ -12,6 +12,7 @@ import { step2Schema } from '../schemas/step2Schema'
 import { fullSchema } from '../schemas/fullSchema'
 import { submitApplication } from '../api/courseApplication'
 import { toApplicationDTO } from '../utils/toDTO'
+import { saveMaxStep, loadMaxStep, clearMaxStep } from '../utils/stepStorage'
 
 import StepIndicator from './StepIndicator'
 import Step1BasicInfo from './Step1BasicInfo'
@@ -48,6 +49,7 @@ export default function CourseApplyForm() {
   const [maxReachedStep, setMaxReachedStep] = useState<StepValue>(1)
   const [submitResult, setSubmitResult] = useState<ApplicationSuccessResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
   const rawStep = searchParams.get('step')
   const isComplete = rawStep === 'complete'
@@ -58,20 +60,30 @@ export default function CourseApplyForm() {
     mode: 'onSubmit',
   })
 
-  // 새로고침 시 URL과 상태가 어긋나는 경우 step=1로 보정
+  // 마운트 시 sessionStorage에서 최대 도달 스텝 복원 + URL 보정
   const syncedRef = useRef(false)
   useEffect(() => {
     if (syncedRef.current) return
     syncedRef.current = true
 
+    // complete 화면 새로고침 시 결과 없으면 step=1로 초기화
     if (isComplete && !submitResult) {
+      clearMaxStep()
       router.replace('/course-apply?step=1')
+      setIsReady(true)
       return
     }
+
+    const storedMax = loadMaxStep()
+    setMaxReachedStep(storedMax)
+
+    // URL 스텝이 저장된 최대 스텝보다 앞서면 보정
     const urlStep = Number(rawStep)
-    if (!isNaN(urlStep) && urlStep > 1) {
-      router.replace('/course-apply?step=1')
+    if (!isNaN(urlStep) && urlStep > storedMax) {
+      router.replace(`/course-apply?step=${storedMax}`)
     }
+
+    setIsReady(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -107,7 +119,10 @@ export default function CourseApplyForm() {
     }
 
     const next = (currentStep + 1) as StepValue
-    if (next > maxReachedStep) setMaxReachedStep(next)
+    if (next > maxReachedStep) {
+      setMaxReachedStep(next)
+      saveMaxStep(next) // sessionStorage에 저장
+    }
     goToStep(next)
   }
 
@@ -124,7 +139,6 @@ export default function CourseApplyForm() {
         const field = issue.path[0] as keyof FullFormValues
         methods.setError(field, { type: 'manual', message: issue.message })
       })
-      // 문제가 있는 스텝 찾아 이동
       const firstErrorField = result.error.issues[0]?.path[0] as string
       const step1Fields = ['name', 'email', 'phone', 'ageGroup']
       goToStep(step1Fields.includes(firstErrorField) ? 1 : 2)
@@ -140,7 +154,13 @@ export default function CourseApplyForm() {
     setSubmitResult(null)
     setSubmitError(null)
     setMaxReachedStep(1)
+    clearMaxStep() // sessionStorage 초기화
     router.push('/course-apply?step=1')
+  }
+
+  // hydration 완료 전 렌더 방지 (스텝 flash 방지)
+  if (!isReady && !isComplete) {
+    return <div className="card h-64 animate-pulse bg-white" />
   }
 
   if (isComplete && submitResult) {
