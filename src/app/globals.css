@@ -4,9 +4,16 @@
   --font-sans: var(--font-geist);
 }
 
+/* 시스템 다크 모드와 무관하게 항상 라이트 테마 고정 */
+:root {
+  color-scheme: light;
+}
+
+html,
 body {
-  font-family: var(--font-sans), Arial, sans-serif;
+  background-color: #f9fafb;
   color: #111827;
+  font-family: var(--font-sans), Arial, sans-serif;
 }
 
 @layer components {

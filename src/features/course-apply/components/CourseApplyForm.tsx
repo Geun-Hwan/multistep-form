@@ -12,7 +12,7 @@ import { step2Schema } from '../schemas/step2Schema'
 import { fullSchema } from '../schemas/fullSchema'
 import { submitApplication } from '../api/courseApplication'
 import { toApplicationDTO } from '../utils/toDTO'
-import { saveMaxStep, loadMaxStep, clearMaxStep } from '../utils/stepStorage'
+import { saveFormState, loadFormState, clearFormState } from '../utils/stepStorage'
 
 import StepIndicator from './StepIndicator'
 import Step1BasicInfo from './Step1BasicInfo'
@@ -66,21 +66,25 @@ export default function CourseApplyForm() {
     if (syncedRef.current) return
     syncedRef.current = true
 
-    // complete 화면 새로고침 시 결과 없으면 step=1로 초기화
+    // complete 화면 새로고침 시 결과 없으면 초기화 후 step=1 이동
     if (isComplete && !submitResult) {
-      clearMaxStep()
+      clearFormState()
       router.replace('/course-apply?step=1')
       setIsReady(true)
       return
     }
 
-    const storedMax = loadMaxStep()
-    setMaxReachedStep(storedMax)
+    // sessionStorage에서 폼 값 + 최대 스텝 복원
+    const stored = loadFormState()
+    if (stored) {
+      methods.reset(stored.values)
+      setMaxReachedStep(stored.maxStep)
 
-    // URL 스텝이 저장된 최대 스텝보다 앞서면 보정
-    const urlStep = Number(rawStep)
-    if (!isNaN(urlStep) && urlStep > storedMax) {
-      router.replace(`/course-apply?step=${storedMax}`)
+      // URL 스텝이 복원된 최대 스텝보다 앞서면 보정
+      const urlStep = Number(rawStep)
+      if (!isNaN(urlStep) && urlStep > stored.maxStep) {
+        router.replace(`/course-apply?step=${stored.maxStep}`)
+      }
     }
 
     setIsReady(true)
@@ -119,15 +123,17 @@ export default function CourseApplyForm() {
     }
 
     const next = (currentStep + 1) as StepValue
-    if (next > maxReachedStep) {
-      setMaxReachedStep(next)
-      saveMaxStep(next) // sessionStorage에 저장
-    }
+    const newMax = next > maxReachedStep ? next : maxReachedStep
+    if (next > maxReachedStep) setMaxReachedStep(next)
+    saveFormState(methods.getValues(), newMax) // 검증 통과한 값 + 스텝 저장
     goToStep(next)
   }
 
   const handlePrev = () => {
-    if (currentStep > 1) goToStep((currentStep - 1) as StepValue)
+    if (currentStep > 1) {
+      saveFormState(methods.getValues(), maxReachedStep) // 뒤로 가기 전 현재 값 저장
+      goToStep((currentStep - 1) as StepValue)
+    }
   }
 
   const handleSubmit = async () => {
@@ -154,7 +160,7 @@ export default function CourseApplyForm() {
     setSubmitResult(null)
     setSubmitError(null)
     setMaxReachedStep(1)
-    clearMaxStep() // sessionStorage 초기화
+    clearFormState() // sessionStorage 초기화
     router.push('/course-apply?step=1')
   }
 
