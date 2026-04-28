@@ -1,0 +1,28 @@
+{
+  "courses": [
+    {
+      "id": "course-react-basic",
+      "title": "React 입문",
+      "description": "React의 기본 개념과 컴포넌트 구조를 학습하는 입문 과정입니다.",
+      "category": "frontend",
+      "capacity": 30,
+      "remainingSeats": 12
+    },
+    {
+      "id": "course-next-app-router",
+      "title": "Next.js App Router 실전",
+      "description": "Next.js App Router 기반의 라우팅, 레이아웃, 서버 컴포넌트 구조를 학습합니다.",
+      "category": "frontend",
+      "capacity": 25,
+      "remainingSeats": 0
+    },
+    {
+      "id": "course-typescript-practical",
+      "title": "TypeScript 실전",
+      "description": "실무에서 자주 사용하는 TypeScript 타입 설계와 활용 방식을 학습합니다.",
+      "category": "frontend",
+      "capacity": 20,
+      "remainingSeats": 5
+    }
+  ]
+}
