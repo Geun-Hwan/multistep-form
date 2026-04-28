@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -57,6 +57,23 @@ export default function CourseApplyForm() {
     defaultValues: DEFAULT_VALUES,
     mode: 'onSubmit',
   })
+
+  // 새로고침 시 URL과 상태가 어긋나는 경우 step=1로 보정
+  const syncedRef = useRef(false)
+  useEffect(() => {
+    if (syncedRef.current) return
+    syncedRef.current = true
+
+    if (isComplete && !submitResult) {
+      router.replace('/course-apply?step=1')
+      return
+    }
+    const urlStep = Number(rawStep)
+    if (!isNaN(urlStep) && urlStep > 1) {
+      router.replace('/course-apply?step=1')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const mutation = useMutation({
     mutationFn: (values: FullFormValues) => submitApplication(toApplicationDTO(values)),
