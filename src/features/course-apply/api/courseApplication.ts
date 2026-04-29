@@ -2,10 +2,14 @@ import type { ApplicationRequest, ApplicationSuccessResponse } from '../types'
 
 export async function submitApplication(
   data: ApplicationRequest,
+  mockMode?: string | null,
 ): Promise<ApplicationSuccessResponse> {
   const res = await fetch('/api/course-applications', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(mockMode ? { 'x-mock-mode': mockMode } : {}),
+    },
     body: JSON.stringify(data),
   })
   const json = await res.json()

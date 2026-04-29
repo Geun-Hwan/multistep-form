@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 import type { FullFormValues, ApplicationSuccessResponse } from '../types'
-import type { StepValue } from '../hooks/useStepNavigation'
+import type { StepValue, StepParam } from '../hooks/useStepNavigation'
 import { step1Schema } from '../schemas/step1Schema'
 import { step2Schema } from '../schemas/step2Schema'
 import { fullSchema } from '../schemas/fullSchema'
@@ -46,56 +46,47 @@ const STEP_SCHEMAS = {
 export default function CourseApplyForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [maxReachedStep, setMaxReachedStep] = useState<StepValue>(1)
+  const [restoredState] = useState(() => (typeof window === 'undefined' ? null : loadFormState()))
+  const [maxReachedStep, setMaxReachedStep] = useState<StepValue>(restoredState?.maxStep ?? 1)
   const [submitResult, setSubmitResult] = useState<ApplicationSuccessResponse | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
 
   const rawStep = searchParams.get('step')
+  const mockMode = searchParams.get('mock')
   const isComplete = rawStep === 'complete'
   const currentStep = parseStep(rawStep, maxReachedStep)
 
   const methods = useForm<FullFormValues>({
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: restoredState?.values ?? DEFAULT_VALUES,
     mode: 'onSubmit',
   })
 
-  // 마운트 시 sessionStorage에서 최대 도달 스텝 복원 + URL 보정
   const syncedRef = useRef(false)
   useEffect(() => {
     if (syncedRef.current) return
     syncedRef.current = true
 
-    // complete 화면 새로고침 시 결과 없으면 초기화 후 step=1 이동
     if (isComplete && !submitResult) {
       clearFormState()
       router.replace('/course-apply?step=1')
-      setIsReady(true)
+      window.requestAnimationFrame(() => setIsReady(true))
       return
     }
 
-    // sessionStorage에서 폼 값 + 최대 스텝 복원
-    const stored = loadFormState()
-    if (stored) {
-      methods.reset(stored.values)
-      setMaxReachedStep(stored.maxStep)
-
-      // URL 스텝이 복원된 최대 스텝보다 앞서면 보정
-      const urlStep = Number(rawStep)
-      if (!isNaN(urlStep) && urlStep > stored.maxStep) {
-        router.replace(`/course-apply?step=${stored.maxStep}`)
-      }
+    const normalizedStep = normalizeStep(rawStep, maxReachedStep)
+    if (normalizedStep && normalizedStep !== rawStep) {
+      router.replace(buildStepUrl(normalizedStep, mockMode))
     }
 
-    setIsReady(true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    window.requestAnimationFrame(() => setIsReady(true))
+  }, [isComplete, maxReachedStep, mockMode, rawStep, router, submitResult])
 
   const mutation = useMutation({
-    mutationFn: (values: FullFormValues) => submitApplication(toApplicationDTO(values)),
+    mutationFn: (values: FullFormValues) => submitApplication(toApplicationDTO(values), mockMode),
     onSuccess: (data) => {
       setSubmitResult(data)
-      router.push('/course-apply?step=complete')
+      router.push(buildStepUrl('complete', mockMode))
     },
     onError: (err: Error) => {
       setSubmitError(err.message)
@@ -103,7 +94,7 @@ export default function CourseApplyForm() {
   })
 
   const goToStep = (step: StepValue | 'complete') => {
-    router.push(`/course-apply?step=${step}`)
+    router.push(buildStepUrl(String(step) as StepParam, mockMode))
   }
 
   const handleNext = async () => {
@@ -125,7 +116,7 @@ export default function CourseApplyForm() {
     const next = (currentStep + 1) as StepValue
     const newMax = next > maxReachedStep ? next : maxReachedStep
     if (next > maxReachedStep) setMaxReachedStep(next)
-    saveFormState(methods.getValues(), newMax) // 검증 통과한 값 + 스텝 저장
+    saveFormState(methods.getValues(), newMax)
     goToStep(next)
   }
 
@@ -157,11 +148,10 @@ export default function CourseApplyForm() {
     setSubmitResult(null)
     setSubmitError(null)
     setMaxReachedStep(1)
-    clearFormState() // sessionStorage 초기화
-    router.push('/course-apply?step=1')
+    clearFormState()
+    router.push(buildStepUrl('1', mockMode))
   }
 
-  // hydration 완료 전 렌더 방지 (스텝 flash 방지)
   if (!isReady && !isComplete) {
     return <div className="card h-64 animate-pulse bg-white" />
   }
@@ -176,54 +166,56 @@ export default function CourseApplyForm() {
 
   return (
     <FormProvider {...methods}>
-      <div className="card">
+      <div className="card pb-28 sm:pb-8">
         <StepIndicator
           currentStep={currentStep}
           maxReachedStep={maxReachedStep}
           onStepClick={(step) => goToStep(step)}
         />
 
-        <h1 className="text-lg font-semibold text-gray-900 mb-6">{STEP_TITLES[currentStep]}</h1>
+        <h1 className="mb-6 text-lg font-semibold text-gray-900">{STEP_TITLES[currentStep]}</h1>
 
         <div>
           {currentStep === 1 && <Step1BasicInfo />}
-          {currentStep === 2 && <Step2CourseInfo />}
-          {currentStep === 3 && <Step3Review />}
+          {currentStep === 2 && <Step2CourseInfo mockMode={mockMode} />}
+          {currentStep === 3 && <Step3Review mockMode={mockMode} />}
 
           {submitError && (
-            <p role="alert" className="mt-4 text-sm text-red-500 text-center">
+            <p role="alert" className="mt-4 text-center text-sm text-red-500">
               {submitError}
             </p>
           )}
 
-          <div className="mt-8 flex gap-3 sm:justify-end">
-            {currentStep > 1 && (
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="btn-secondary flex-1 sm:flex-none"
-              >
-                이전
-              </button>
-            )}
-            {currentStep < 3 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="btn-primary flex-1 sm:flex-none"
-              >
-                다음
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={mutation.isPending}
-                className="btn-primary flex-1 sm:flex-none disabled:opacity-50"
-              >
-                {mutation.isPending ? '제출 중...' : '신청 완료'}
-              </button>
-            )}
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mt-8 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+            <div className="mx-auto flex w-full max-w-lg gap-3 sm:justify-end">
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="btn-secondary flex-1 sm:flex-none"
+                >
+                  이전
+                </button>
+              )}
+              {currentStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="btn-primary flex-1 sm:flex-none"
+                >
+                  다음
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={mutation.isPending}
+                  className="btn-primary flex-1 sm:flex-none disabled:opacity-50"
+                >
+                  {mutation.isPending ? '제출 중...' : '신청 완료'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -232,8 +224,21 @@ export default function CourseApplyForm() {
 }
 
 function parseStep(raw: string | null, maxReached: StepValue): StepValue {
+  const normalized = normalizeStep(raw, maxReached)
+  return Number(normalized ?? '1') as StepValue
+}
+
+function normalizeStep(raw: string | null, maxReached: StepValue): Extract<StepParam, '1' | '2' | '3'> | null {
   const n = Number(raw)
-  if (!Number.isInteger(n) || n < 1 || n > 3) return 1
-  if (n > maxReached) return maxReached
-  return n as StepValue
+  if (!Number.isInteger(n) || n < 1 || n > 3) return '1'
+  if (n > maxReached) return String(maxReached) as Extract<StepParam, '1' | '2' | '3'>
+  return String(n) as Extract<StepParam, '1' | '2' | '3'>
+}
+
+function buildStepUrl(step: StepParam, mockMode: string | null): string {
+  const params = new URLSearchParams({ step })
+  if (mockMode) {
+    params.set('mock', mockMode)
+  }
+  return `/course-apply?${params.toString()}`
 }

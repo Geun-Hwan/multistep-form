@@ -8,7 +8,11 @@ import FormField from './FormField'
 
 const COURSE_GOALS = ['취업', '이직', '자기계발', '기타'] as const
 
-export default function Step2CourseInfo() {
+interface Props {
+  mockMode?: string | null
+}
+
+export default function Step2CourseInfo({ mockMode }: Props) {
   const {
     register,
     formState: { errors },
@@ -19,8 +23,8 @@ export default function Step2CourseInfo() {
   const hasExperience = useWatch<FullFormValues, 'hasExperience'>({ name: 'hasExperience' })
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['courses'],
-    queryFn: fetchCourses,
+    queryKey: ['courses', mockMode ?? 'default'],
+    queryFn: () => fetchCourses(mockMode),
   })
 
   const handleCourseGoalChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -41,9 +45,9 @@ export default function Step2CourseInfo() {
 
   return (
     <div className="space-y-5">
-      <FormField label="희망 강의" error={errors.courseId?.message} required>
+      <FormField label="희망 강의" error={errors.courseId?.message} required id="courseId">
         {isLoading && (
-          <div className="input flex items-center text-gray-400 text-sm">강의 목록 로딩 중...</div>
+          <div className="input flex items-center text-sm text-gray-400">강의 목록 로딩 중...</div>
         )}
         {isError && (
           <div className="space-y-2">
@@ -54,22 +58,25 @@ export default function Step2CourseInfo() {
           </div>
         )}
         {data && (
-          <select {...register('courseId')} id="courseId" className="input">
-            <option value="">선택해주세요.</option>
-            {data.courses.map((course) => {
-              const isClosed = course.remainingSeats === 0
-              return (
-                <option key={course.id} value={course.id} disabled={isClosed}>
-                  {course.title}
-                  {isClosed ? ' (마감)' : ` (잔여 ${course.remainingSeats}석)`}
-                </option>
-              )
-            })}
-          </select>
+          <>
+            <select {...register('courseId')} id="courseId" className="input">
+              <option value="">선택해주세요.</option>
+              {data.courses.map((course) => {
+                const isClosed = course.remainingSeats === 0
+                return (
+                  <option key={course.id} value={course.id} disabled={isClosed}>
+                    {course.title}
+                    {isClosed ? ' (마감)' : ` (잔여 ${course.remainingSeats}석)`}
+                  </option>
+                )
+              })}
+            </select>
+            <p className="mt-2 text-xs text-gray-500">마감된 강의는 선택할 수 없으며 신청 시도 시 서버에서도 차단됩니다.</p>
+          </>
         )}
       </FormField>
 
-      <FormField label="수강 목적" error={errors.courseGoal?.message} required>
+      <FormField label="수강 목적" error={errors.courseGoal?.message} required id="courseGoal">
         <select
           {...register('courseGoal')}
           id="courseGoal"
@@ -86,7 +93,7 @@ export default function Step2CourseInfo() {
       </FormField>
 
       {courseGoal === '기타' && (
-        <FormField label="기타 수강 목적" error={errors.otherGoal?.message} required>
+        <FormField label="기타 수강 목적" error={errors.otherGoal?.message} required id="otherGoal">
           <input
             {...register('otherGoal')}
             id="otherGoal"
@@ -97,16 +104,16 @@ export default function Step2CourseInfo() {
         </FormField>
       )}
 
-      <FormField label="수강 경험" error={errors.hasExperience?.message} required>
+      <FormField label="수강 경험" error={errors.hasExperience?.message} required id="hasExperience">
         <div className="flex gap-6" role="group" aria-labelledby="hasExperience-label">
           {(['있음', '없음'] as const).map((val) => (
-            <label key={val} className="flex items-center gap-2 cursor-pointer">
+            <label key={val} className="flex cursor-pointer items-center gap-2">
               <input
                 {...register('hasExperience')}
                 type="radio"
                 value={val}
                 onChange={handleExperienceChange}
-                className="w-4 h-4 accent-blue-600"
+                className="h-4 w-4 accent-blue-600"
               />
               <span className="text-sm text-gray-700">{val}</span>
             </label>
@@ -115,7 +122,7 @@ export default function Step2CourseInfo() {
       </FormField>
 
       {hasExperience === '있음' && (
-        <FormField label="기존 수강 강의명" error={errors.previousCourse?.message} required>
+        <FormField label="기존 수강 강의명" error={errors.previousCourse?.message} required id="previousCourse">
           <input
             {...register('previousCourse')}
             id="previousCourse"

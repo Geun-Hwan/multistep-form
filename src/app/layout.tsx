@@ -1,10 +1,7 @@
 import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
 import './globals.css'
 import QueryProvider from '@/providers/QueryProvider'
 import MockProvider from '@/mocks/MockProvider'
-
-const geist = Geist({ variable: '--font-geist', subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: '수강 신청',
@@ -13,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={`${geist.variable} h-full antialiased`}>
+    <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-gray-50">
         <QueryProvider>
           <MockProvider>{children}</MockProvider>

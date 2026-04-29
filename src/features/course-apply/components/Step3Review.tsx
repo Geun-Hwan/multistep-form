@@ -10,26 +10,33 @@ interface ReviewRowProps {
   value: string
 }
 
+interface Props {
+  mockMode?: string | null
+}
+
 function ReviewRow({ label, value }: ReviewRowProps) {
   return (
-    <div className="flex gap-4 py-3 border-b border-gray-100 last:border-0">
+    <div className="flex gap-4 border-b border-gray-100 py-3 last:border-0">
       <dt className="w-32 shrink-0 text-sm text-gray-500">{label}</dt>
-      <dd className="text-sm text-gray-900 font-medium break-all">{value}</dd>
+      <dd className="break-all text-sm font-medium text-gray-900">{value}</dd>
     </div>
   )
 }
 
-export default function Step3Review() {
+export default function Step3Review({ mockMode }: Props) {
   const { getValues } = useFormContext<FullFormValues>()
   const values = getValues()
 
-  const { data } = useQuery({ queryKey: ['courses'], queryFn: fetchCourses })
+  const { data } = useQuery({
+    queryKey: ['courses', mockMode ?? 'default'],
+    queryFn: () => fetchCourses(mockMode),
+  })
   const courseTitle = data?.courses.find((c) => c.id === values.courseId)?.title ?? values.courseId
 
   return (
     <div>
-      <p className="text-sm text-gray-500 mb-4">입력하신 내용을 확인해주세요.</p>
-      <dl className="bg-gray-50 rounded-xl px-4 divide-y divide-gray-100">
+      <p className="mb-4 text-sm text-gray-500">입력하신 내용을 확인해주세요.</p>
+      <dl className="divide-y divide-gray-100 rounded-xl bg-gray-50 px-4">
         <ReviewRow label="이름" value={values.name} />
         <ReviewRow label="이메일" value={values.email} />
         <ReviewRow label="전화번호" value={values.phone} />
