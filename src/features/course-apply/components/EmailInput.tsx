@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const PRESET_DOMAINS = ['naver.com', 'gmail.com', 'daum.net', 'kakao.com', 'nate.com', 'yahoo.com']
+const CUSTOM = '직접입력'
 
 function parseEmail(email: string) {
   const at = email.indexOf('@')
@@ -22,7 +23,7 @@ export default function EmailInput({ value, onChange, onBlur }: Props) {
   const { local: initLocal, domain: initDomain, isCustom: initIsCustom } = parseEmail(value)
 
   const [local, setLocal] = useState(initLocal)
-  const [selectedDomain, setSelectedDomain] = useState(initIsCustom ? '직접입력' : initDomain)
+  const [selectedDomain, setSelectedDomain] = useState(initIsCustom ? CUSTOM : initDomain)
   const [customDomain, setCustomDomain] = useState(initIsCustom ? initDomain : '')
   const internalRef = useRef(false)
 
@@ -34,13 +35,13 @@ export default function EmailInput({ value, onChange, onBlur }: Props) {
     }
     const { local: l, domain: d, isCustom } = parseEmail(value)
     setLocal(l)
-    setSelectedDomain(isCustom ? '직접입력' : d)
+    setSelectedDomain(isCustom ? CUSTOM : d)
     setCustomDomain(isCustom ? d : '')
   }, [value])
 
   const emit = (l: string, sel: string, custom: string) => {
     internalRef.current = true
-    const domain = sel === '직접입력' ? custom : sel
+    const domain = sel === CUSTOM ? custom : sel
     onChange(domain ? `${l}@${domain}` : l)
   }
 
@@ -53,15 +54,15 @@ export default function EmailInput({ value, onChange, onBlur }: Props) {
   const handleDomainSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sel = e.target.value
     setSelectedDomain(sel)
-    const newCustom = sel === '직접입력' ? customDomain : ''
-    if (sel !== '직접입력') setCustomDomain('')
+    const newCustom = sel === CUSTOM ? customDomain : ''
+    if (sel !== CUSTOM) setCustomDomain('')
     emit(local, sel, newCustom)
   }
 
   const handleCustomDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const d = e.target.value
     setCustomDomain(d)
-    emit(local, '직접입력', d)
+    emit(local, CUSTOM, d)
   }
 
   return (
@@ -79,6 +80,7 @@ export default function EmailInput({ value, onChange, onBlur }: Props) {
         />
         <span className="shrink-0 text-gray-400 font-medium text-sm">@</span>
         <select
+          id="emailDomain"
           value={selectedDomain}
           onChange={handleDomainSelect}
           className="input min-w-0 flex-1"
@@ -89,10 +91,10 @@ export default function EmailInput({ value, onChange, onBlur }: Props) {
               {d}
             </option>
           ))}
-          <option value="직접입력">직접입력</option>
+          <option value={CUSTOM}>{CUSTOM}</option>
         </select>
       </div>
-      {selectedDomain === '직접입력' && (
+      {selectedDomain === CUSTOM && (
         <input
           type="text"
           value={customDomain}

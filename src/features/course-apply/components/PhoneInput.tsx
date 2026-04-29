@@ -22,6 +22,10 @@ function splitPhone(digits: string): [string, string, string] {
   return [area, middle, last]
 }
 
+function toDigits(raw: string, max: number) {
+  return raw.replace(/\D/g, '').slice(0, max)
+}
+
 const PREVENT_KEYS = [
   'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
   'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End',
@@ -78,14 +82,14 @@ export default function PhoneInput({ value, onChange, onBlur }: Props) {
   }
 
   const handleMiddleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
+    const v = toDigits(e.target.value, 4)
     setMiddle(v)
     emit(area, v, last)
     if (v.length === 4) ref3.current?.focus()
   }
 
   const handleLastChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
+    const v = toDigits(e.target.value, 4)
     setLast(v)
     emit(area, middle, v)
   }
@@ -122,6 +126,7 @@ export default function PhoneInput({ value, onChange, onBlur }: Props) {
       <span className="text-gray-300 shrink-0 text-lg font-light">—</span>
       <input
         ref={ref2}
+        id="phone-middle"
         type="tel"
         inputMode="numeric"
         maxLength={4}
@@ -134,6 +139,7 @@ export default function PhoneInput({ value, onChange, onBlur }: Props) {
       <span className="text-gray-300 shrink-0 text-lg font-light">—</span>
       <input
         ref={ref3}
+        id="phone-last"
         type="tel"
         inputMode="numeric"
         maxLength={4}

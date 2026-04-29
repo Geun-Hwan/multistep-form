@@ -21,7 +21,7 @@ test.describe('수강 신청 폼 E2E', () => {
     await fillStep1(page)
     await page.getByRole('button', { name: '다음' }).click()
     await expect(page).toHaveURL(/step=2/)
-    await expect(page.getByText('Step 2. 수강 정보')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Step 2. 수강 정보' })).toBeVisible()
   })
 
   // ─── Step 2 ───────────────────────────────────────────────────────────
@@ -70,7 +70,11 @@ test.describe('수강 신청 폼 E2E', () => {
     await page.waitForURL(/step=1/)
 
     await expect(page.locator('#name')).toHaveValue('홍길동')
-    await expect(page.locator('#email')).toHaveValue('test@example.com')
+    await expect(page.locator('#email')).toHaveValue('test')
+    await expect(page.locator('#emailDomain')).toHaveValue('gmail.com')
+    await expect(page.locator('#phone')).toHaveValue('010')
+    await expect(page.locator('#phone-middle')).toHaveValue('1234')
+    await expect(page.locator('#phone-last')).toHaveValue('5678')
   })
 
   // ─── 전체 흐름 ─────────────────────────────────────────────────────────
@@ -82,7 +86,7 @@ test.describe('수강 신청 폼 E2E', () => {
     await page.waitForURL(/step=2/)
 
     // Step 2
-    await page.waitForSelector('#courseId option:not([value=""])')
+    await page.waitForSelector('#courseId')
     await page.selectOption('#courseId', { index: 1 })
     await page.selectOption('#courseGoal', '자기계발')
     await page.getByLabel('없음').check()
@@ -90,7 +94,7 @@ test.describe('수강 신청 폼 E2E', () => {
     await page.waitForURL(/step=3/)
 
     // Step 3 — 확인 화면
-    await expect(page.getByText('Step 3. 신청 확인')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Step 3. 신청 확인' })).toBeVisible()
     await expect(page.getByText('홍길동')).toBeVisible()
 
     await page.getByRole('button', { name: '신청 완료' }).click()
@@ -108,7 +112,7 @@ test.describe('수강 신청 폼 E2E', () => {
     await fillStep1(page)
     await page.getByRole('button', { name: '다음' }).click()
     await page.waitForURL(/step=2/)
-    await page.waitForSelector('#courseId option:not([value=""])')
+    await page.waitForSelector('#courseId')
     await page.selectOption('#courseId', { index: 1 })
     await page.selectOption('#courseGoal', '취업')
     await page.getByLabel('없음').check()
@@ -136,7 +140,10 @@ test.describe('수강 신청 폼 E2E', () => {
 
 async function fillStep1(page: import('@playwright/test').Page) {
   await page.fill('#name', '홍길동')
-  await page.fill('#email', 'test@example.com')
-  await page.fill('#phone', '01012345678')
+  await page.fill('#email', 'test')
+  await page.selectOption('#emailDomain', 'gmail.com')
+  await page.fill('#phone', '010')
+  await page.fill('#phone-middle', '1234')
+  await page.fill('#phone-last', '5678')
   await page.selectOption('#ageGroup', '20대')
 }
